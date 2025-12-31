@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Happy New Year 2026</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Poppins', sans-serif;
+    }
+    .glow-text {
+      text-shadow: 0 0 30px rgba(255, 200, 0, 0.9);
+    }
+    .gradient-text {
+      background: linear-gradient(90deg, #facc15, #ec4899, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .celebration {
+      font-size: 6rem;
+      font-weight: bold;
+      text-align: center;
+      color: #facc15;
+      text-shadow: 0 0 30px #ff0080, 0 0 60px #ffdd00, 0 0 90px #00ffee;
+      animation: flash 0.5s infinite alternate;
+    }
+    @keyframes flash {
+      0% {opacity:1;}
+      100% {opacity:0.3;}
+    }
+  </style>
+</head>
+
+<body class="bg-black text-white">
+<canvas id="bg" class="fixed inset-0 z-0"></canvas>
+
+<!-- COUNTDOWN -->
+<div id="countdown" class="relative z-10 min-h-screen flex flex-col items-center justify-center text-center text-8xl font-extrabold glow-text">
+  10
+</div>
+
+<!-- CELEBRATION ANIMATION -->
+<div id="celebration" class="relative z-10 min-h-screen flex items-center justify-center" style="display:none;">
+  <div class="celebration">🎉 HAPPY NEW YEAR 🎉</div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div id="mainContent"
+  class="relative z-10 min-h-screen flex flex-col items-center justify-center text-center opacity-100 transition-opacity duration-1000" style="display:none;">
+  <h1 class="text-6xl md:text-8xl font-extrabold glow-text">HAPPY NEW YEAR</h1>
+  <h2 class="text-7xl md:text-9xl font-extrabold gradient-text my-6">2026</h2>
+  <p class="text-xl tracking-widest opacity-90">✨ TO A BRILLIANT YEAR, FRIEND ✨</p>
+  <p class="mt-6 text-4xl font-bold text-yellow-400">HAPPY 2026! 🥂</p>
+</div>
+
+<!-- THEME BUTTON -->
+<div class="fixed right-6 top-1/2 -translate-y-1/2 space-y-4 z-50">
+  <button onclick="toggleTheme()" class="w-12 h-12 rounded-full bg-white/10">🎨</button>
+</div>
+
+<!-- MUSIC -->
+<audio id="music" loop preload="auto">
+  <source src="happy-new-year-music-456991.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  /* ===========================
+     10 SECOND COUNTDOWN
+  ============================ */
+  const countdownEl = document.getElementById("countdown");
+  const celebrationEl = document.getElementById("celebration");
+  const mainContent = document.getElementById("mainContent");
+
+  mainContent.style.display = "none";
+  celebrationEl.style.display = "none";
+
+  let count = 10;
+  countdownEl.textContent = count;
+
+  const countdownInterval = setInterval(() => {
+    count--;
+    if (count > 0) {
+      countdownEl.textContent = count;
+    } else {
+      clearInterval(countdownInterval);
+      countdownEl.style.display = "none";
+      celebrationEl.style.display = "flex";
+
+      // Show celebration for 3 seconds
+      setTimeout(() => {
+        celebrationEl.style.display = "none";
+        mainContent.style.display = "flex";
+        createFireworks(); // launch fireworks
+      }, 3000);
+    }
+  }, 1000);
+
+  /* ===========================
+     THREE.JS BACKGROUND
+  ============================ */
+  const canvas = document.getElementById("bg");
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setSize(innerWidth, innerHeight);
+  camera.position.z = 5;
+
+  const geometry = new THREE.BufferGeometry();
+  const countParticles = 2000;
+  const positions = new Float32Array(countParticles * 3);
+  for (let i = 0; i < countParticles * 3; i++) positions[i] = (Math.random() - 0.5) * 20;
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+
+  let baseSize = 0.03;
+  const material = new THREE.PointsMaterial({ color: 0xffcc00, size: baseSize });
+  const particles = new THREE.Points(geometry, material);
+  scene.add(particles);
+
+  let rotationSpeed = 0.0008;
+
+  function animate() {
+    requestAnimationFrame(animate);
+    particles.rotation.y += rotationSpeed;
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  /* ===========================
+     THEMES
+  ============================ */
+  const themes = [
+    ["bg-black"],
+    ["bg-gradient-to-r", "from-red-800", "to-black"],
+    ["bg-gradient-to-r", "from-indigo-900", "to-purple-900"],
+    ["bg-gradient-to-r", "from-emerald-900", "to-teal-800"],
+    ["bg-gradient-to-r", "from-pink-700", "to-rose-900"],
+    ["bg-gradient-to-r", "from-slate-900", "to-gray-800"],
+    ["bg-gradient-to-r", "from-yellow-700", "to-orange-800"],
+    ["bg-gradient-to-r", "from-cyan-900", "to-blue-900"]
+  ];
+  let themeIndex = 0;
+  window.toggleTheme = function() {
+    document.body.className = "text-white";
+    themes[themeIndex].forEach(c => document.body.classList.add(c));
+    themeIndex = (themeIndex + 1) % themes.length;
+  };
+
+  /* ===========================
+     MUSIC SYSTEM
+  ============================ */
+  const music = document.getElementById("music");
+  music.volume = 0;
+
+  let audioCtx, analyser, dataArray, sourceNode;
+  let muted = false;
+
+  const AUDIO_STOP_TIME = 120000;
+  const FADE_DURATION = 2000;
+
+  function fadeTo(target) {
+    const step = (target - music.volume) / (FADE_DURATION / 50);
+    const i = setInterval(() => {
+      music.volume = Math.min(1, Math.max(0, music.volume + step));
+      if (Math.abs(music.volume - target) < 0.02) clearInterval(i);
+    }, 50);
+  }
+
+  function initAudio() {
+    if (audioCtx) return;
+    audioCtx = new AudioContext();
+    sourceNode = audioCtx.createMediaElementSource(music);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 128;
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+    sourceNode.connect(analyser);
+    analyser.connect(audioCtx.destination);
+  }
+
+  function unlockAudio() {
+    initAudio();
+    audioCtx.resume();
+    music.play().catch(() => {});
+    fadeTo(0.7);
+    setTimeout(() => {
+      fadeTo(0);
+      setTimeout(() => music.pause(), FADE_DURATION);
+    }, AUDIO_STOP_TIME);
+    window.removeEventListener("click", unlockAudio);
+    window.removeEventListener("keydown", unlockAudio);
+    window.removeEventListener("touchstart", unlockAudio);
+  }
+
+  window.addEventListener("click", unlockAudio);
+  window.addEventListener("keydown", unlockAudio);
+  window.addEventListener("touchstart", unlockAudio);
+
+  /* ===========================
+     BEAT SYNC
+  ============================ */
+  function beatUpdate() {
+    if (!analyser) return;
+    analyser.getByteFrequencyData(dataArray);
+    const bass = dataArray.slice(0, 8).reduce((a, b) => a + b, 0) / 8;
+    if (bass > 140) {
+      material.size = baseSize * 2;
+      rotationSpeed = 0.003;
+    } else {
+      material.size += (baseSize - material.size) * 0.1;
+      rotationSpeed += (0.0008 - rotationSpeed) * 0.05;
+    }
+    requestAnimationFrame(beatUpdate);
+  }
+  beatUpdate();
+
+  /* ===========================
+     FIREWORKS EFFECT
+  ============================ */
+  window.createFireworks = function() {
+    const ctx = canvas.getContext("2d");
+    const fireworks = [];
+    function random(min, max) { return Math.random() * (max - min) + min; }
+
+    class Firework {
+      constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.particles = [];
+        this.color = color;
+        for (let i = 0; i < 100; i++) {
+          this.particles.push({ x: this.x, y: this.y, vx: random(-4,4), vy: random(-4,4), alpha: 1 });
+        }
+      }
+      update() {
+        this.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.alpha -= 0.02; });
+        this.particles = this.particles.filter(p => p.alpha > 0);
+      }
+      draw() {
+        this.particles.forEach(p => {
+          ctx.fillStyle = `rgba(${this.color}, ${p.alpha})`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+    }
+
+    function spawnFirework() {
+      const x = random(100, innerWidth - 100);
+      const y = random(50, innerHeight / 2);
+      const color = `${Math.floor(random(0,255))},${Math.floor(random(0,255))},${Math.floor(random(0,255))}`;
+      fireworks.push(new Firework(x, y, color));
+    }
+
+    function animateFireworks() {
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      fireworks.forEach(fw => { fw.update(); fw.draw(); });
+      requestAnimationFrame(animateFireworks);
+    }
+
+    for (let i = 0; i < 5; i++) setTimeout(spawnFirework, i * 500);
+    animateFireworks();
+  }
+
+});
+</script>
+</body>
+</html>
